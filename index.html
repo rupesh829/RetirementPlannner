@@ -25,6 +25,14 @@
             </div>
         </header>
 
+        <!-- Backup bar -->
+        <div class="mb-6 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl p-3 text-xs">
+            <span class="font-bold text-slate-600">💾 Changes auto-save in this browser.</span>
+            <button @click="exportData" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-1.5 rounded-lg transition">⬇ Export Backup (.json)</button>
+            <label class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">⬆ Import Backup<input type="file" accept=".json,application/json" @change="importData" class="hidden"></label>
+            <span class="text-slate-400">Export after major edits and keep the file safe.</span>
+        </div>
+
         <!-- Top Row Matrix: Dynamic Tier Status Blocks -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div v-for="(title, key) in tiers" :key="key" class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between transition hover:shadow-md">
@@ -605,7 +613,33 @@
                 const formatCr = (val) => (val / 10000000).toFixed(2);
                 const formatAmount = (val) => Math.round(val).toLocaleString('en-IN');
 
-                return { activeTab, family, ages, personOpts, seedMissing, inflationTracks, tiers, TiersExtended, collapsedTiers, expenses, granularItems, assets, getExpensesByTier, toggleTierCollapse, isLinkedToGranular, getGranularParentSum, calculateGranularAnnual, addInflationTrack, deleteInflationTrack, addNewTier, deleteTier, addNewExpense, deleteExpenseGlobal, addGranularItem, deleteGranularItem, addNewAsset, deleteAsset, weightedROI, tierAllocation, cashFlowMatrix, corpus, formatCr, formatAmount };
+                const STORE_KEYS = ['family_meta', 'inflation_tracks', 'custom_tiers', 'collapsed_states', 'parent_expenses', 'granular_items', 'asset_portfolios', 'seed_v2'];
+                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+                const exportData = () => {
+                    const data = {};
+                    STORE_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; });
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'retirement_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                };
+                const importData = (ev) => {
+                    const file = ev.target.files[0]; if (!file) return;
+                    const r = new FileReader();
+                    r.onload = () => {
+                        try {
+                            const data = JSON.parse(r.result);
+                            if (!data.family_meta || !data.parent_expenses) throw new Error('Not a planner backup');
+                            if (!confirm('Replace current data with this backup?')) return;
+                            STORE_KEYS.forEach(k => { if (data[k] !== undefined) localStorage.setItem(k, data[k]); });
+                            location.reload();
+                        } catch (e) { alert('Could not import: ' + e.message); }
+                    };
+                    r.readAsText(file); ev.target.value = '';
+                };
+                return { exportData, importData, activeTab, family, ages, personOpts, seedMissing, inflationTracks, tiers, TiersExtended, collapsedTiers, expenses, granularItems, assets, getExpensesByTier, toggleTierCollapse, isLinkedToGranular, getGranularParentSum, calculateGranularAnnual, addInflationTrack, deleteInflationTrack, addNewTier, deleteTier, addNewExpense, deleteExpenseGlobal, addGranularItem, deleteGranularItem, addNewAsset, deleteAsset, weightedROI, tierAllocation, cashFlowMatrix, corpus, formatCr, formatAmount };
             }
         }).mount('#app');
     </script>
