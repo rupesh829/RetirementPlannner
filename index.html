@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Personalized Retirement Vault</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <style>[v-cloak]{display:none}</style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-6" v-cloak>
+        
+        <!-- Header Profile Banner -->
+        <header class="mb-8 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <span class="text-xs font-bold uppercase bg-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-500/20">🔒 Encrypted Personal Wealth Vault</span>
+                <h1 class="text-3xl font-black tracking-tight mt-2">{{ family.fName || 'Father' }} & {{ family.mName || 'Mother' }}'s Retirement Legacy Portfolio</h1>
+                <p class="mt-1 text-slate-300 text-xs font-medium">Timeline: {{ family.fName || 'Father' }} age {{ ages.f }} (retires at {{ family.retAge }}) to horizon age {{ family.horizonAge }} | Supporting {{ family.k1Name || 'Kid 1' }} & {{ family.k2Name || 'Kid 2' }}</p>
+            </div>
+            <div class="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 w-full md:w-auto min-w-[200px] text-center md:text-right">
+                <span class="text-xs uppercase font-bold tracking-wider text-slate-400 block">Weighted Asset Portfolio Yield</span>
+                <div class="text-3xl font-black text-amber-400 mt-1">{{ weightedROI.toFixed(2) }}%</div>
+                <div class="text-[10px] text-slate-400 italic mt-0.5">Calculated from dynamic active asset mix</div>
+            </div>
+        </header>
+
+        <!-- Top Row Matrix: Dynamic Tier Status Blocks -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div v-for="(title, key) in tiers" :key="key" class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between transition hover:shadow-md">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-black tracking-wider text-slate-400 capitalize">{{ key }} Tier</span>
+                        <button @click="deleteTier(key)" v-if="!['survival','education','goals','maintenance','lifestyle'].includes(key)" class="text-rose-500 hover:text-rose-700 text-[10px] font-bold">✕ Delete Tier</button>
+                    </div>
+                    <div class="mt-2 space-y-1">
+                        <div class="text-xs text-slate-500 flex justify-between"><span>Minimum NPV Needed:</span> <span class="font-bold text-slate-800">₹{{ formatCr(corpus[key] || 0) }} Cr</span></div>
+                        <div class="text-xs text-slate-500 flex justify-between"><span>Strategy Allocated:</span> <span class="font-bold text-indigo-600">₹{{ formatCr(tierAllocation[key] || 0) }} Cr</span></div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Funding Match:</span>
+                    <span :class="['text-[11px] font-bold px-2 py-0.5 rounded', (tierAllocation[key] || 0) >= (corpus[key] || 0) ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700']">
+                        {{ (tierAllocation[key] || 0) >= (corpus[key] || 0) ? 'Fully Funded' : 'Deficit Shortfall' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Architecture Navigation Tabs -->
+        <div class="flex flex-wrap border-b border-slate-200 mb-6 font-bold text-xs md:text-sm select-none gap-1 bg-slate-100 p-1 rounded-xl">
+            <button @click="activeTab = 'meta'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'meta' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">👤 1. Family Registry</button>
+            <button @click="activeTab = 'inflation'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'inflation' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">🎈 2. Inflation Tracks</button>
+            <button @click="activeTab = 'granular'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'granular' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">🍎 3. Detailed Itemized Costs</button>
+            <button @click="activeTab = 'expenses'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'expenses' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">🗂️ 4. Tier Aggregations</button>
+            <button @click="activeTab = 'assets'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'assets' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">🏢 5. Capital Portfolios</button>
+            <button @click="activeTab = 'cashflow'" :class="['px-4 py-2.5 rounded-lg transition', activeTab === 'cashflow' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-800']">📈 6. Cash Runway</button>
+        </div>
+
+        <!-- TAB 1: METADATA RESIDENCE REGISTRY -->
+        <div v-if="activeTab === 'meta'" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 border-b pb-2">Profile Registry Setup</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Father Name</label><input type="text" v-model="family.fName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Birth Month / Year</label><input type="month" v-model="family.fDob" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Current Age (auto)</label><div class="p-2 text-sm font-black text-indigo-700 bg-indigo-50 rounded border border-indigo-100">{{ ages.f }} yrs</div></div>
+                <div></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Mother Name</label><input type="text" v-model="family.mName" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Birth Month / Year</label><input type="month" v-model="family.mDob" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Current Age (auto)</label><div class="p-2 text-sm font-black text-indigo-700 bg-indigo-50 rounded border border-indigo-100">{{ ages.m }} yrs</div></div>
+                <div></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Kid 1 Name</label><input type="text" v-model="family.k1Name" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Birth Month / Year</label><input type="month" v-model="family.k1Dob" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Current Age (auto)</label><div class="p-2 text-sm font-black text-indigo-700 bg-indigo-50 rounded border border-indigo-100">{{ ages.k1 }} yrs</div></div>
+                <div></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Kid 2 Name</label><input type="text" v-model="family.k2Name" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Birth Month / Year</label><input type="month" v-model="family.k2Dob" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Current Age (auto)</label><div class="p-2 text-sm font-black text-indigo-700 bg-indigo-50 rounded border border-indigo-100">{{ ages.k2 }} yrs</div></div>
+                <div></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">{{ family.fName || 'Father' }}'s Retirement Age</label><input type="number" v-model.number="family.retAge" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Horizon Target Age ({{ family.fName || 'Father' }})</label><input type="number" v-model.number="family.horizonAge" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: UNLIMITED INFLATION VELOCITY TRACKS -->
+        <div v-if="activeTab === 'inflation'" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-lg font-bold text-slate-900">Dynamic Velocity Inflation Tracks</h2>
+                <button @click="addInflationTrack" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition">+ Create Custom Inflation Track</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div v-for="(val, trackKey) in inflationTracks" :key="trackKey" class="bg-slate-50 p-3 rounded-lg border border-slate-200 relative">
+                    <label class="block text-xs font-black text-slate-500 uppercase mb-1">{{ trackKey }} Velocity</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="number" step="0.1" v-model.number="inflationTracks[trackKey]" class="w-full bg-white border border-slate-200 font-bold px-2 py-1 text-sm rounded">
+                        <span class="text-xs font-bold text-slate-400">%</span>
+                    </div>
+                    <button @click="deleteInflationTrack(trackKey)" v-if="!['core','edu','med'].includes(trackKey)" class="absolute top-2 right-2 text-rose-500 text-[10px] font-bold">Remove</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DYNAMIC GRANULAR SUB-ITEM COSTS LOGIC -->
+        <div v-if="activeTab === 'granular'" class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-800 text-white font-extrabold text-sm flex justify-between items-center">
+                    <span>3. Primary Granular Items Matrix (Feeds Directly into Parent Macro Tiers)</span>
+                    <button @click="addGranularItem" class="bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1.5 rounded-lg transition">+ Add New Micro Itemized Line</button>
+                </div>
+                <div class="p-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs min-w-[850px]">
+                        <thead>
+                            <tr class="text-slate-400 font-bold border-b border-slate-100 uppercase">
+                                <th class="pb-2 w-1/4">Line Item Detail</th>
+                                <th class="pb-2">Binds to Parent Summary Line</th>
+                                <th class="pb-2">Cycle Rate</th>
+                                <th class="pb-2 text-right">Base Nominal Cost</th>
+                                <th class="pb-2 text-right">Aggregated Output Result</th>
+                                <th class="pb-2 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium">
+                            <tr v-for="(gItem, idx) in granularItems" :key="gItem.id" class="hover:bg-slate-50/50">
+                                <td class="py-2.5 pr-2">
+                                    <input type="text" v-model="gItem.name" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 font-bold text-slate-800">
+                                </td>
+                                <td class="py-2.5">
+                                    <select v-model="gItem.parentExpenseId" class="bg-slate-50 border border-slate-200 rounded p-1 font-bold text-slate-700 max-w-[220px]">
+                                        <option v-for="exp in expenses" :value="exp.id">{{ exp.name }}</option>
+                                    </select>
+                                </td>
+                                <td class="py-2.5">
+                                    <select v-model="gItem.unit" class="bg-slate-50 border border-slate-200 rounded p-1 font-bold text-slate-700">
+                                        <option value="/ month">Monthly</option>
+                                        <option value="/ year">Annual</option>
+                                    </select>
+                                </td>
+                                <td class="py-2.5 text-right">
+                                    <div class="flex items-center justify-end gap-1 font-bold">
+                                        <span>₹</span><input type="number" v-model.number="gItem.value" class="w-20 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-right">
+                                    </div>
+                                </td>
+                                <td class="py-2.5 text-right font-black text-slate-900">
+                                    ₹{{ formatAmount(calculateGranularAnnual(gItem)) }} /yr
+                                </td>
+                                <td class="py-2.5 text-center">
+                                    <button @click="deleteGranularItem(idx)" class="text-rose-500 hover:text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="activeTab === 'expenses'" class="space-y-6">
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-sm font-bold text-slate-700">Manage Macro Category Tiers</span>
+                <div class="flex gap-2">
+                    <button @click="addNewTier" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition">+ Create Custom Tier Group</button>
+                    <button @click="seedMissing" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition">↻ Restore Template Items</button>
+                </div>
+            </div>
+
+            <div v-for="(title, tKey) in TiersExtended" :key="tKey" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div @click="toggleTierCollapse(tKey)" class="p-4 bg-slate-800 text-white font-extrabold text-sm flex justify-between items-center cursor-pointer select-none">
+                    <span class="tracking-wide flex items-center gap-2">
+                        <span>{{ collapsedTiers[tKey] ? '▶' : '▼' }}</span>
+                        <span class="uppercase font-black text-xs text-indigo-300">Tier [{{ tKey }}]:</span> {{ title }}
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <button @click.stop="addNewExpense(tKey)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-1 rounded-md transition">+ Add Macro Line Item</button>
+                        <span class="text-xs bg-white/10 border border-white/10 px-3 py-1 rounded-md font-bold">NPV Segment Cost: ₹{{ formatCr(corpus[tKey] || 0) }} Cr</span>
+                    </span>
+                </div>
+                
+                <div v-if="!collapsedTiers[tKey]" class="p-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs min-w-[900px]">
+                        <thead>
+                            <tr class="text-slate-400 font-bold border-b border-slate-100 uppercase">
+                                <th class="pb-2 w-1/4">Structural Parent Component</th>
+                                <th class="pb-2 w-1/12">Execution Pattern</th>
+                                <th class="pb-2 w-1/8">Velocity Track</th>
+                                <th class="pb-2 w-1/6">Timeline (ages of selected person)</th>
+                                <th class="pb-2 text-right">Granular Computed Sum</th>
+                                <th class="pb-2 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium">
+                            <tr v-for="(item, index) in getExpensesByTier(tKey)" :key="item.id" class="hover:bg-slate-50/60 transition">
+                                <td class="py-3 pr-2">
+                                    <input type="text" v-model="item.name" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-0.5 font-bold text-slate-800 text-xs mb-1">
+                                    <input type="text" v-model="item.desc" class="w-full bg-slate-100/60 border border-slate-200 text-[11px] text-slate-500 rounded px-2 py-0.5">
+                                </td>
+                                <td class="py-3">
+                                    <select v-model="item.isRecurring" class="bg-slate-50 border border-slate-200 rounded p-1 font-bold text-slate-700">
+                                        <option :value="true">Recurring</option>
+                                        <option :value="false">One-Time</option>
+                                    </select>
+                                </td>
+                                <td class="py-3">
+                                    <select v-model="item.infType" class="bg-slate-50 border border-slate-200 rounded p-1 font-bold uppercase text-slate-700">
+                                        <option v-for="(v, k) in inflationTracks" :value="k">{{ k }}</option>
+                                    </select>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex flex-col gap-1 font-bold text-slate-500">
+                                        <div class="text-[10px] font-semibold flex items-center gap-2 flex-wrap">Ages of:
+                                            <select v-model="item.anchor" class="bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-slate-700"><option v-for="p in personOpts" :value="p.k">{{ p.n }}</option></select>
+                                            <label><input type="checkbox" v-model="item.active"> Active</label>
+                                        </div>
+                                        <template v-if="item.isRecurring">
+                                            <div class="flex items-center gap-2">Start:
+                                                <span v-if="item.startAtRet" class="bg-slate-100 text-slate-800 rounded px-2 py-0.5">{{ family.retAge }}</span>
+                                                <input v-else type="number" v-model.number="item.startAge" class="w-12 bg-slate-50 border border-slate-200 text-center rounded py-0.5 font-bold text-slate-800">
+                                                <label class="text-[10px] font-semibold"><input type="checkbox" v-model="item.startAtRet"> at retirement</label>
+                                            </div>
+                                            <div class="flex items-center gap-2">End:&nbsp;
+                                                <span v-if="item.endAtHorizon" class="bg-slate-100 text-slate-800 rounded px-2 py-0.5">{{ family.horizonAge }}</span>
+                                                <input v-else type="number" v-model.number="item.endAge" class="w-12 bg-slate-50 border border-slate-200 text-center rounded py-0.5 font-bold text-slate-800">
+                                                <label class="text-[10px] font-semibold"><input type="checkbox" v-model="item.endAtHorizon"> at horizon</label>
+                                            </div>
+                                            <div class="flex items-center gap-2">Every <input type="number" min="1" v-model.number="item.every" class="w-10 bg-slate-50 border border-slate-200 text-center rounded py-0.5 font-bold text-slate-800"> yr(s)</div>
+                                        </template>
+                                        <div v-else class="flex items-center gap-2">Target Age:
+                                            <span v-if="item.startAtRet" class="bg-slate-100 text-slate-800 rounded px-2 py-0.5">{{ family.retAge }}</span>
+                                            <input v-else type="number" v-model.number="item.startAge" class="w-12 bg-slate-50 border border-slate-200 text-center rounded py-0.5 font-bold text-slate-800">
+                                            <label class="text-[10px] font-semibold"><input type="checkbox" v-model="item.startAtRet"> at retirement</label>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 text-right">
+                                    <div v-if="isLinkedToGranular(item.id)" class="text-slate-500 font-bold bg-slate-100/80 px-2 py-1 rounded inline-block text-right">
+                                        ₹{{ formatAmount(getGranularParentSum(item.id)) }} /yr <span class="text-[10px] text-indigo-500 block">(Auto-Linked)</span>
+                                    </div>
+                                    <div v-else class="flex items-center justify-end gap-1">
+                                        <span class="text-slate-400 font-bold">₹</span>
+                                        <input type="number" v-model.number="item.baseValue" class="w-20 text-right bg-slate-50 border border-slate-200 rounded px-2 py-0.5 font-bold text-slate-900">
+                                        <select v-model="item.unit" class="bg-slate-50 border border-slate-200 rounded py-0.5 text-slate-500 font-bold focus:outline-none">
+                                            <option value="/ month">/mo</option>
+                                            <option value="/ year">/yr</option>
+                                            <option value="one-time">Fix</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td class="py-3 text-center">
+                                    <button @click="deleteExpenseGlobal(item.id)" class="text-rose-500 hover:text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded transition">Delete</button>
+                                </td>
+                            </tr>
+                            <tr v-if="getExpensesByTier(tKey).length === 0">
+                                <td colspan="6" class="py-4 text-center font-bold text-slate-400 italic">No Parent Summary Vectors mapped to this active tier category block.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="activeTab === 'assets'" class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-800 text-white font-extrabold text-sm flex justify-between items-center">
+                    <span>Active Capital Source Deployments & Yield Configurations</span>
+                    <button @click="addNewAsset" class="bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1.5 rounded-lg transition">+ Create New Custody Asset Line</button>
+                </div>
+                <div class="p-4 overflow-x-auto">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-600 mb-2"><input type="checkbox" v-model="family.ledgerFromToday" class="rounded"> Corpus funds all dated expenses from today (ledger starts today; recurring "at retirement" lines still start at retirement)</label>
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-600 mb-3"><input type="checkbox" v-model="family.growToRet" class="rounded"> Capital is invested today and keeps compounding until retirement (otherwise amounts are treated as the corpus at retirement)</label>
+                    <table class="w-full text-left text-xs min-w-[750px]">
+                        <thead>
+                            <tr class="text-slate-400 font-bold border-b border-slate-100 uppercase">
+                                <th class="pb-2 w-1/4">Asset Class Engine</th>
+                                <th class="pb-2 w-1/5">Deployed Capital Principal</th>
+                                <th class="pb-2 w-1/6">Expected Growth Target</th>
+                                <th class="pb-2 w-1/3">Target Allocation Bind (Specifies Which Tiers Are Funded)</th>
+                                <th class="pb-2 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium">
+                            <tr v-for="(asset, idx) in assets" :key="asset.id" class="hover:bg-slate-50/50">
+                                <td class="py-3 pr-2">
+                                    <input type="text" v-model="asset.name" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 font-bold text-slate-800">
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-1 font-bold">
+                                        <span class="text-slate-400">₹</span>
+                                        <input type="number" v-model.number="asset.allocated" class="w-24 text-right bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-900">
+                                        <span class="text-slate-400">Lakhs</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-1 font-bold">
+                                        <input type="number" step="0.1" v-model.number="asset.roi" class="w-14 text-center bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-slate-900">
+                                        <span class="text-slate-400">%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex flex-wrap gap-x-3 gap-y-1">
+                                        <label v-for="(title, key) in TiersExtended" :key="key" class="inline-flex items-center gap-1.5 font-bold text-slate-600 cursor-pointer">
+                                            <input type="checkbox" :value="key" v-model="asset.targets" class="rounded text-indigo-600 w-3.5 h-3.5">
+                                            <span class="capitalize text-[11px]">{{ key }}</span>
+                                        </label>
+                                    </div>
+                                </td>
+                                <td class="py-3 text-center">
+                                    <button @click="deleteAsset(idx)" class="text-rose-500 hover:text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded transition">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="activeTab === 'cashflow'" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 bg-slate-800 text-white font-bold text-sm flex justify-between items-center select-none">
+                <span>Dynamic Integrated {{ cashFlowMatrix.length }}-Year Ledger (age {{ cashFlowMatrix.length ? cashFlowMatrix[0].fAge : '-' }} to {{ family.horizonAge }})</span>
+                <span class="text-xs text-indigo-300 font-bold">Auto-Compounding Starting/Ending Balances Based on Portfolio Growth</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-[11px] min-w-[1100px]">
+                    <thead class="bg-slate-100 text-slate-500 font-bold border-b border-slate-200 sticky top-0">
+                        <tr>
+                            <th class="p-2.5 text-center">{{ family.fName || 'Father' }} Age</th>
+                            <th class="p-2.5 text-center">{{ family.mName || 'Mother' }} Age</th>
+                            <th class="p-2.5 text-center">{{ family.k1Name || 'Kid 1' }} Age</th>
+                            <th class="p-2.5 text-center">{{ family.k2Name || 'Kid 2' }} Age</th>
+                            <th class="p-2.5 text-right bg-blue-50/60 text-blue-900 border-x border-slate-200">Starting Balance</th>
+                            <th v-for="(title, key) in TiersExtended" :key="key" class="p-2.5 text-right font-bold text-slate-700 border-r border-slate-200 capitalize bg-slate-50/40">
+                                {{ key }} Outflow
+                            </th>
+                            <th class="p-2.5 text-right bg-rose-50 text-rose-900 font-bold border-r border-slate-200">Total Outlay</th>
+                            <th class="p-2.5 text-right bg-slate-900 text-emerald-400 font-black">Ending Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 font-medium">
+                        <tr v-for="row in cashFlowMatrix" :key="row.fAge" class="hover:bg-slate-50 transition">
+                            <td class="p-2.5 text-center font-bold text-slate-900">{{ row.fAge }}</td>
+                            <td class="p-2.5 text-center text-slate-400">{{ row.mAge }}</td>
+                            <td class="p-2.5 text-center text-slate-400">{{ row.k1Age }}</td>
+                            <td class="p-2.5 text-center text-slate-400">{{ row.k2Age }}</td>
+                            <td class="p-2.5 text-right font-bold text-blue-700 bg-blue-50/20 border-x border-slate-100">₹{{ formatAmount(row.startingBalance) }}</td>
+                            <td v-for="(v, key) in TiersExtended" :key="key" class="p-2.5 text-right font-bold text-slate-600 bg-slate-50/20 border-r border-slate-100">
+                                ₹{{ formatAmount(row.tierOutflows[key] || 0) }}
+                            </td>
+                            <td class="p-2.5 text-right font-bold text-rose-700 bg-rose-50/30 border-r border-slate-100">₹{{ formatAmount(row.totalOutflow) }}</td>
+                            <td class="p-2.5 text-right font-black text-emerald-500 bg-slate-900 text-xs">₹{{ formatAmount(row.endingBalance) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, watch } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('meta');
+
+                const getStorage = (key, defaultVal) => {
+                    const saved = localStorage.getItem(key);
+                    if (!saved) return defaultVal;
+                    try { return JSON.parse(saved); } catch(e) { return defaultVal; }
+                };
+
+                const todayD = new Date();
+                const dobFromAge = (a) => { const d = new Date(todayD.getFullYear() - a, todayD.getMonth(), 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+                const famSaved = getStorage('family_meta', {});
+                const famInit = Object.assign({ fName: 'Father', retAge: 44, horizonAge: 90, mName: 'Mother', k1Name: 'Kid 1', k2Name: 'Kid 2', growToRet: false, ledgerFromToday: true }, famSaved);
+                [['f', 40], ['m', 36], ['k1', 8], ['k2', 3]].forEach(([k, d]) => { if (!famInit[k + 'Dob']) famInit[k + 'Dob'] = dobFromAge(famInit[k + 'Age'] ?? d); });
+                const family = ref(famInit);
+                const ageFromDob = (dob) => {
+                    const m = /^(\d{4})-(\d{2})$/.exec(dob || ''); if (!m) return 0;
+                    return Math.max(0, todayD.getFullYear() - +m[1] - ((todayD.getMonth() + 1) < +m[2] ? 1 : 0));
+                };
+                const ages = computed(() => ({ f: ageFromDob(family.value.fDob), m: ageFromDob(family.value.mDob), k1: ageFromDob(family.value.k1Dob), k2: ageFromDob(family.value.k2Dob) }));
+                const preRetFactor = (roi) => {
+                    if (family.value.ledgerFromToday || !family.value.growToRet) return 1;
+                    const yrs = Math.max(0, (+family.value.retAge || 0) - ages.value.f);
+                    return Math.pow(1 + (roi || 0) / 100, yrs);
+                };
+
+
+                const inflationTracks = ref(getStorage('inflation_tracks', {
+                    core: 6.0, edu: 10.0, med: 12.0
+                }));
+
+                const tiers = ref(getStorage('custom_tiers', {
+                    survival: 'Mandatory basic family core operational survival parameters',
+                    education: 'Hard targeted academic training and professional specialization runways',
+                    goals: 'Extended legacy blueprints including startup grants and wedding assets',
+                    maintenance: 'Physical assets maintenance including vehicular upgrades and property fees',
+                    lifestyle: 'Flexible high-end vacation modules and discretionary shopping'
+                }));
+
+                const collapsedTiers = ref(getStorage('collapsed_states', {
+                    survival: false, education: false, goals: false, maintenance: false, lifestyle: false
+                }));
+
+                const expenses = ref(getStorage('parent_expenses', [
+                    { id: 1, tier: 'survival', name: 'Household Basic Living Core Pool', desc: 'Auto-calculates from granular itemized child items below', baseValue: 0, unit: '/ year', isRecurring: true, startAge: 44, endAge: 90, infType: 'core' },
+                    { id: 2, tier: 'survival', name: 'Medical Insurance Portfolio Stacks', desc: 'Floater configurations scaling progressively through horizons', baseValue: 35000, unit: '/ year', isRecurring: true, startAge: 44, endAge: 90, infType: 'med' },
+                    { id: 3, tier: 'survival', name: 'Out-Of-Pocket OPD Emergency Cushion', desc: 'Direct routine pharmaceutical and clinical consulting lines', baseValue: 20000, unit: '/ year', isRecurring: true, startAge: 44, endAge: 90, infType: 'med' },
+                    { id: 4, tier: 'education', name: 'Senior Sibling Primary School Path', desc: 'Tuition tracks mapped across target age bars', baseValue: 150000, unit: '/ year', isRecurring: true, startAge: 44, endAge: 53, infType: 'edu' },
+                    { id: 5, tier: 'education', name: 'Senior Sibling Private Undergraduate Degree', desc: 'Tuition plus residential institutional boarding logistics', baseValue: 500000, unit: '/ year', isRecurring: true, startAge: 54, endAge: 57, infType: 'edu' }
+                ]));
+
+                expenses.value.forEach(e => { if (e.startAtRet === undefined) e.startAtRet = e.startAge === famInit.retAge || e.startAge === 44; if (!e.anchor) e.anchor = 'f'; if (e.active === undefined) e.active = true; if (!e.every) e.every = 1; if (e.endAtHorizon === undefined) e.endAtHorizon = e.endAge === famInit.horizonAge || e.endAge === 90; });
+
+                const granularItems = ref(getStorage('granular_items', [
+                    { id: 1, parentExpenseId: 1, name: 'Groceries & Provisions Store Requirements', value: 30000, unit: '/ month' },
+                    { id: 2, parentExpenseId: 1, name: 'Domestic Staff Support Salaries (Maid/Cook)', value: 15000, unit: '/ month' },
+                    { id: 3, parentExpenseId: 1, name: 'Electricity Utility Grid Footprint', value: 8000, unit: '/ month' },
+                    { id: 4, parentExpenseId: 1, name: 'Piped LPG Fuel Connection Pipeline', value: 2000, unit: '/ month' },
+                    { id: 5, parentExpenseId: 1, name: 'High-Speed Broadband & Communications Networks', value: 5000, unit: '/ month' }
+                ]));
+
+                const assets = ref(getStorage('asset_portfolios', [
+                    { id: 1, name: 'Fixed Income High-Yield Liquidity Deposits', allocated: 200, roi: 7.0, targets: ['survival'] },
+                    { id: 2, name: 'Equity Systematic Investment Portfolios (SIP)', allocated: 400, roi: 12.0, targets: ['education'] },
+                    { id: 3, name: 'Direct Market Alpha Blue-Chip Equities', allocated: 300, roi: 14.0, targets: ['goals'] }
+                ]));
+
+                const seedTemplate = [{"n":"{k1} – School (tuition & extras)","t":"education","a":"k1","i":"edu","it":[["School tuition",150000],["Extras (books, uniform, transport, trips)",60000]],"s":8,"e":17},{"n":"{k1} – Tuition & enrichment","t":"education","a":"k1","i":"edu","it":[["Maths & languages tuition",36000],["Music, sports & activities",48000]],"s":8,"e":17},{"n":"{k1} – Competitive exam coaching (JEE/NEET/CLAT)","t":"education","a":"k1","i":"edu","it":[["Coaching fees",250000]],"s":16,"e":17},{"n":"{k1} – Entrance exams, counselling & college applications","t":"education","a":"k1","i":"edu","it":[["Entrance exam fees",30000],["Counselling",20000],["College applications",50000]],"s":17,"x":1},{"n":"{k1} – Undergraduate incl. hostel (India, private)","t":"education","a":"k1","i":"edu","it":[["Tuition",400000],["Hostel & living",200000]],"s":18,"e":21},{"n":"{k1} – Skill courses, certifications & laptop","t":"education","a":"k1","i":"edu","it":[["Courses & certifications",40000],["Laptop (amortised)",25000]],"s":18,"e":21},{"n":"{k1} – Postgraduate in India (MBA / M.Tech)","t":"education","a":"k1","i":"edu","it":[["Tuition",500000],["Hostel & living",200000]],"s":22,"e":23},{"n":"{k1} – ALT: Master's abroad (instead of India PG)","t":"education","a":"k1","i":"edu","it":[["Tuition",2500000],["Living, visa & travel",1200000]],"s":22,"e":23,"act":false},{"n":"{k2} – Pre-primary / playschool","t":"education","a":"k2","i":"edu","it":[["Playschool fees",70000],["Activities & transport",20000]],"s":3,"e":5},{"n":"{k2} – Admission & registration deposits (Class 1)","t":"education","a":"k2","i":"edu","it":[["Registration fee",25000],["Admission / building deposit",100000]],"s":6,"x":1},{"n":"{k2} – School (tuition & extras)","t":"education","a":"k2","i":"edu","it":[["School tuition",150000],["Extras (books, uniform, transport, trips)",60000]],"s":6,"e":17},{"n":"{k2} – Tuition & enrichment","t":"education","a":"k2","i":"edu","it":[["Maths & languages tuition",36000],["Music, sports & activities",48000]],"s":6,"e":17},{"n":"{k2} – Competitive exam coaching (JEE/NEET/CLAT)","t":"education","a":"k2","i":"edu","it":[["Coaching fees",250000]],"s":16,"e":17},{"n":"{k2} – Entrance exams, counselling & college applications","t":"education","a":"k2","i":"edu","it":[["Entrance exam fees",30000],["Counselling",20000],["College applications",50000]],"s":17,"x":1},{"n":"{k2} – Undergraduate incl. hostel (India, private)","t":"education","a":"k2","i":"edu","it":[["Tuition",400000],["Hostel & living",200000]],"s":18,"e":21},{"n":"{k2} – Skill courses, certifications & laptop","t":"education","a":"k2","i":"edu","it":[["Courses & certifications",40000],["Laptop (amortised)",25000]],"s":18,"e":21},{"n":"{k2} – Postgraduate in India (MBA / M.Tech)","t":"education","a":"k2","i":"edu","it":[["Tuition",500000],["Hostel & living",200000]],"s":22,"e":23},{"n":"{k2} – ALT: Master's abroad (instead of India PG)","t":"education","a":"k2","i":"edu","it":[["Tuition",2500000],["Living, visa & travel",1200000]],"s":22,"e":23,"act":false},{"n":"{k1} – Wedding (age 28)","t":"goals","a":"k1","i":"core","it":[["Venue, catering & events",1500000],["Jewellery, clothes & gifts",1000000]],"s":28,"x":1},{"n":"{k1} – First-home down-payment support (age 30)","t":"goals","a":"k1","i":"prop","it":[["Down-payment support",2000000]],"s":30,"x":1},{"n":"{k1} – Seed capital for business / start-up (age 26)","t":"goals","a":"k1","i":"core","it":[["Seed capital",1000000]],"s":26,"x":1},{"n":"{k2} – Wedding (age 28)","t":"goals","a":"k2","i":"core","it":[["Venue, catering & events",1500000],["Jewellery, clothes & gifts",1000000]],"s":28,"x":1},{"n":"{k2} – First-home down-payment support (age 30)","t":"goals","a":"k2","i":"prop","it":[["Down-payment support",2000000]],"s":30,"x":1},{"n":"{k2} – Seed capital for business / start-up (age 26)","t":"goals","a":"k2","i":"core","it":[["Seed capital",1000000]],"s":26,"x":1},{"n":"Buy house in Tirupati (now)","t":"maintenance","a":"f","i":"prop","it":[["Property price",7500000],["Stamp duty & registration",560000],["Legal & brokerage",100000]],"sOff":0,"x":1},{"n":"Interiors & furnishing of owned house","t":"maintenance","a":"f","i":"prop","it":[["Interiors & woodwork",1500000],["Furniture & appliances",800000]],"sOff":0,"x":1},{"n":"Moving & setup costs","t":"maintenance","a":"f","i":"core","it":[["Shifting / movers",50000],["Deposits & utility setup",50000],["Initial household setup",100000]],"sOff":0,"x":1},{"n":"Car replacement (every 8 yrs, till ~80)","t":"maintenance","a":"f","i":"core","it":[["Net replacement cost (after trade-in)",1200000]],"e":80,"sOff":4,"ev":8},{"n":"Emergency fund (6 months of expenses)","t":"survival","a":"f","i":"core","it":[["6 months household core",360000],["6 months medical & OPD",27500]],"x":1,"sr":1},{"n":"Career-break / job-loss buffer (12 months)","t":"survival","a":"f","i":"core","it":[["12 months household core",720000]],"sOff":0,"x":1}];
+                const personOpts = computed(() => [{ k: 'f', n: family.value.fName || 'Father' }, { k: 'm', n: family.value.mName || 'Mother' }, { k: 'k1', n: family.value.k1Name || 'Kid 1' }, { k: 'k2', n: family.value.k2Name || 'Kid 2' }]);
+                if (inflationTracks.value.prop === undefined) inflationTracks.value.prop = 7.0;
+                const seedMissing = () => {
+                    const names = new Set(expenses.value.map(e => e.name));
+                    let eid = Math.max(0, ...expenses.value.map(e => e.id)), gid = Math.max(0, ...granularItems.value.map(g => g.id));
+                    const nm = (t) => t.replace('{k1}', family.value.k1Name || 'Kid 1').replace('{k2}', family.value.k2Name || 'Kid 2');
+                    seedTemplate.forEach(p => {
+                        const name = nm(p.n);
+                        if (names.has(name) || tiers.value[p.t] === undefined) return;
+                        if (inflationTracks.value[p.i] === undefined) return;
+                        eid++;
+                        const st = p.sOff !== undefined ? ages.value.f + p.sOff : p.s;
+                        expenses.value.push({ id: eid, tier: p.t, name, desc: 'Auto-derived from itemized lines (placeholder estimates, edit in tab 3)', baseValue: 0, unit: '/ year', isRecurring: !p.x, startAge: st, endAge: p.e || st, startAtRet: !!p.sr, endAtHorizon: false, infType: p.i, anchor: p.a, active: p.act !== false, every: p.ev || 1 });
+                        p.it.forEach(([n, v]) => { gid++; granularItems.value.push({ id: gid, parentExpenseId: eid, name: n, value: v, unit: '/ year' }); });
+                    });
+                };
+                if (!localStorage.getItem('seed_v2')) {
+                    expenses.value = expenses.value.filter(e => !((e.id === 4 && e.name === 'Senior Sibling Primary School Path') || (e.id === 5 && e.name === 'Senior Sibling Private Undergraduate Degree')));
+                    seedMissing();
+                    localStorage.setItem('seed_v2', '1');
+                }
+
+                watch(family, (newVal) => localStorage.setItem('family_meta', JSON.stringify(newVal)), { deep: true });
+                watch(inflationTracks, (newVal) => localStorage.setItem('inflation_tracks', JSON.stringify(newVal)), { deep: true });
+                watch(tiers, (newVal) => localStorage.setItem('custom_tiers', JSON.stringify(newVal)), { deep: true });
+                watch(collapsedTiers, (newVal) => localStorage.setItem('collapsed_states', JSON.stringify(newVal)), { deep: true });
+                watch(expenses, (newVal) => localStorage.setItem('parent_expenses', JSON.stringify(newVal)), { deep: true });
+                watch(granularItems, (newVal) => localStorage.setItem('granular_items', JSON.stringify(newVal)), { deep: true });
+                watch(assets, (newVal) => localStorage.setItem('asset_portfolios', JSON.stringify(newVal)), { deep: true });
+
+                const TiersExtended = computed(() => tiers.value);
+
+                const getExpensesByTier = (tierKey) => {
+                    return expenses.value.filter(e => e.tier === tierKey);
+                };
+
+                const toggleTierCollapse = (tierKey) => {
+                    collapsedTiers.value[tierKey] = !collapsedTiers.value[tierKey];
+                };
+
+                const isLinkedToGranular = (expenseId) => {
+                    return granularItems.value.some(g => g.parentExpenseId === expenseId);
+                };
+
+                const getGranularParentSum = (expenseId) => {
+                    return granularItems.value
+                        .filter(g => g.parentExpenseId === expenseId)
+                        .reduce((sum, g) => sum + calculateGranularAnnual(g), 0);
+                };
+
+                const calculateGranularAnnual = (item) => {
+                    return item.unit === '/ month' ? item.value * 12 : item.value;
+                };
+
+                const addInflationTrack = () => {
+                    const name = prompt("Enter Unique Key Name for New Inflation Track (e.g. tech, luxury):");
+                    if (name && !inflationTracks.value[name]) inflationTracks.value[name] = 7.0;
+                };
+                const deleteInflationTrack = (key) => { delete inflationTracks.value[key]; expenses.value.forEach(e => { if (e.infType === key) e.infType = 'core'; }); };
+
+                const addNewTier = () => {
+                    const key = prompt("Enter a Short Alpha Identifier Key (e.g. real_estate, wedding):");
+                    if (key && !tiers.value[key]) {
+                        tiers.value[key] = prompt("Enter a Clear Descriptive Name for this Tier Category Group:") || key;
+                        collapsedTiers.value[key] = false;
+                    }
+                };
+                const deleteTier = (key) => {
+                    if (!confirm('Delete this tier along with its expense lines?')) return;
+                    const ids = expenses.value.filter(e => e.tier === key).map(e => e.id);
+                    expenses.value = expenses.value.filter(e => e.tier !== key);
+                    granularItems.value = granularItems.value.filter(g => !ids.includes(g.parentExpenseId));
+                    assets.value.forEach(a => { a.targets = a.targets.filter(t => t !== key); });
+                    delete tiers.value[key]; delete collapsedTiers.value[key];
+                };
+
+                const addNewExpense = (tierKey) => {
+                    const id = expenses.value.length ? Math.max(...expenses.value.map(e => e.id)) + 1 : 1;
+                    expenses.value.push({ id, tier: tierKey, name: 'New Operational Parent Vector Line', desc: 'Customizable line entry details', baseValue: 50000, unit: '/ year', isRecurring: true, startAge: family.value.retAge, endAge: family.value.horizonAge, startAtRet: true, endAtHorizon: true, anchor: 'f', active: true, every: 1, infType: 'core' });
+                    collapsedTiers.value[tierKey] = false;
+                };
+                const deleteExpenseGlobal = (id) => {
+                    expenses.value = expenses.value.filter(e => e.id !== id);
+                    granularItems.value = granularItems.value.filter(g => g.parentExpenseId !== id);
+                };
+
+                const addGranularItem = () => {
+                    if(!expenses.value.length) return alert("Create at least one Parent Macro Line entry first.");
+                    const id = granularItems.value.length ? Math.max(...granularItems.value.map(g => g.id)) + 1 : 1;
+                    granularItems.value.push({ id, parentExpenseId: expenses.value[0].id, name: 'New Granular Cost Element component', value: 1000, unit: '/ month' });
+                };
+                const deleteGranularItem = (idx) => { granularItems.value.splice(idx, 1); };
+
+                const addNewAsset = () => {
+                    const id = assets.value.length ? Math.max(...assets.value.map(a => a.id)) + 1 : 1;
+                    assets.value.push({ id, name: 'New Custody Capital Engine Line', allocated: 50, roi: 8.5, targets: [] });
+                };
+                const deleteAsset = (idx) => { assets.value.splice(idx, 1); };
+
+                const weightedROI = computed(() => {
+                    const totalLakhs = assets.value.reduce((sum, a) => sum + a.allocated, 0);
+                    if (totalLakhs === 0) return 0;
+                    return assets.value.reduce((sum, a) => sum + (a.allocated * a.roi), 0) / totalLakhs;
+                });
+
+                const tierAllocation = computed(() => {
+                    let map = {};
+                    Object.keys(tiers.value).forEach(k => map[k] = 0);
+                    assets.value.forEach(asset => {
+                        if(!asset.targets.length) return;
+                        const slice = (asset.allocated * 100000 * preRetFactor(asset.roi)) / asset.targets.length;
+                        asset.targets.forEach(tKey => { if (map[tKey] !== undefined) map[tKey] += slice; });
+                    });
+                    return map;
+                });
+
+                const cashFlowMatrix = computed(() => {
+                    const matrix = [];
+                    const currentAge = ages.value.f;
+                    const retireAge = parseInt(family.value.retAge) || currentAge;
+                    const maxAge = parseInt(family.value.horizonAge) || 90;
+                    const firstAge = family.value.ledgerFromToday ? currentAge : Math.max(retireAge, currentAge);
+
+                    let runningCapital = assets.value.reduce((sum, a) => sum + (a.allocated * 100000 * preRetFactor(a.roi)), 0);
+                    const growthRate = weightedROI.value / 100;
+
+                    for (let fAge = firstAge; fAge <= maxAge; fAge++) {
+                        const offset = fAge - currentAge;   // today's costs inflate from today
+                        let row = {
+                            fAge,
+                            mAge: ages.value.m + offset,
+                            k1Age: ages.value.k1 + offset,
+                            k2Age: ages.value.k2 + offset,
+                            startingBalance: runningCapital,
+                            tierOutflows: {},
+                            totalOutflow: 0,
+                            endingBalance: 0
+                        };
+                        Object.keys(tiers.value).forEach(k => row.tierOutflows[k] = 0);
+
+                        expenses.value.forEach(item => {
+                            if (item.active === false) return;
+                            const shift = currentAge - (ages.value[item.anchor || 'f'] || 0);
+                            const sAge = item.startAtRet ? retireAge : item.startAge + shift;
+                            const eAge = item.endAtHorizon ? maxAge : item.endAge + shift;
+                            const every = Math.max(1, item.every || 1);
+                            const match = item.isRecurring ? (fAge >= sAge && fAge <= eAge && (fAge - sAge) % every === 0) : (fAge === sAge);
+                            if (!match) return;
+                            const linked = isLinkedToGranular(item.id);
+                            let annualBase = linked ? getGranularParentSum(item.id) : (item.baseValue || 0);
+                            if (!linked && item.unit === '/ month') annualBase *= 12;
+                            const rate = inflationTracks.value[item.infType] || 0;
+                            const inflated = annualBase * Math.pow(1 + rate / 100, offset);
+                            if (row.tierOutflows[item.tier] !== undefined) row.tierOutflows[item.tier] += inflated;
+                        });
+
+                        row.totalOutflow = Object.values(row.tierOutflows).reduce((a, b) => a + b, 0);
+                        const afterSpending = runningCapital - row.totalOutflow;
+                        row.endingBalance = afterSpending > 0 ? afterSpending * (1 + growthRate) : afterSpending;
+                        runningCapital = row.endingBalance;
+                        matrix.push(row);
+                    }
+                    return matrix;
+                });
+
+                const corpus = computed(() => {
+                    let map = {};
+                    Object.keys(tiers.value).forEach(k => map[k] = 0);
+                    const rate = weightedROI.value / 100;
+                    
+                    cashFlowMatrix.value.forEach((row, idx) => {
+                        const discountFactor = Math.pow(1 + rate, idx);
+                        Object.keys(tiers.value).forEach(k => {
+                            if(row.tierOutflows[k]) map[k] += (row.tierOutflows[k] / discountFactor);
+                        });
+                    });
+                    return map;
+                });
+
+                const formatCr = (val) => (val / 10000000).toFixed(2);
+                const formatAmount = (val) => Math.round(val).toLocaleString('en-IN');
+
+                return { activeTab, family, ages, personOpts, seedMissing, inflationTracks, tiers, TiersExtended, collapsedTiers, expenses, granularItems, assets, getExpensesByTier, toggleTierCollapse, isLinkedToGranular, getGranularParentSum, calculateGranularAnnual, addInflationTrack, deleteInflationTrack, addNewTier, deleteTier, addNewExpense, deleteExpenseGlobal, addGranularItem, deleteGranularItem, addNewAsset, deleteAsset, weightedROI, tierAllocation, cashFlowMatrix, corpus, formatCr, formatAmount };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
